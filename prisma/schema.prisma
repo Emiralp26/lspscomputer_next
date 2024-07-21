@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Trainees {
+  columnIndex                 Int                      @id @default(autoincrement())
+  uuid                       Bytes                    @unique(map: "uuid_UNIQUE") @db.Binary(16)
+  traineeName                String                   @db.Text
+  traineeCitizenID           Int
+  traineeForumID             Int
+  traineeDiscordID           String                   @db.Text
+  traineeODPUUID             Bytes                    @unique(map: "traineeODPUUID_UNIQUE") @db.Binary(16)
+  joinDate                   DateTime                 @default(now()) @db.Date
+  traineeCollarNumber        Int
+  traineeInductionUUID       Bytes                    @db.Binary(16)
+  traineeFinalAssessmentUUID Bytes?                   @db.Binary(16)
+  traineeISOUUID             Bytes?                   @db.Binary(16)
+  odp                        ODP?
+  evidenceSubmissions        ODPEvidenceSubmissions[]
+}
+
+enum TORole {
+  CMD
+  ATO
+  TO
+  TiT
+  AP
+  RSV
+}
+
+model TrainingOfficers {
+  columnIndex          Int    @id @default(autoincrement())
+  trainingOfficerUUID Bytes  @db.Binary(16)
+  trainingOfficerName String @db.Text
+  trainingOfficerRole TORole @default(TiT)
+  trainingOfficerCitizenID String @db.Text
+  trainingOfficerForumID String @db.Text
+  trainingOfficerDiscordID String @db.Text
+  trainingOfficerQualifications Json?
+  authCode            String @db.Text
+}
+
+model ODPEvidenceSubmissions {
+  columnIndex         Int       @default(autoincrement())
+  submissionUUID     Bytes     @unique(map: "submissionUUID_UNIQUE") @db.Binary(16)
+  traineeUUID        Bytes     @db.Binary(16)
+  traineeODPUUID     Bytes     @db.Binary(16)
+  submissionDateTime DateTime? @default(now()) @db.Date
+  submissionFor      Json?   
+  evidence           String?   @db.LongText
+  isTOStatement      Int       @db.TinyInt
+  gradingOfficerName String?   @db.LongText
+  gradingOfficerUUID Bytes?    @db.Binary(16)
+  traineeODP         ODP       @relation(fields: [traineeODPUUID], references: [ODPUUID])
+  trainee            Trainees  @relation(fields: [traineeUUID], references: [uuid])
+
+  @@id([columnIndex, traineeODPUUID, traineeUUID])
+  @@index([traineeODPUUID], map: "ODPEvidenceSubmissions_traineeODPUUID_fkey")
+  @@index([traineeUUID], map: "ODPEvidenceSubmissions_traineeUUID_fkey")
+}
+
+model ODP {
+  columnIndex Int                      @id @default(autoincrement())
+  ODPUUID    Bytes                    @unique(map: "ODPUUID_UNIQUE") @db.Binary(16)
+  checklist  Json                   
+  trainee    Trainees                 @relation(fields: [ODPUUID], references: [traineeODPUUID])
+  evidences  ODPEvidenceSubmissions[]
+}
